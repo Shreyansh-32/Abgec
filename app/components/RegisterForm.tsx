@@ -1,83 +1,102 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { userSchema } from "@/lib/zod";
+import axios, { isAxiosError } from "axios";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
-interface FormData {
-  name: string;
-  batch: string;
+type FormData = {
+  fullName: string;
+  gradYear: number;
   branch: string;
   email: string;
-  mobile: string;
+  mobile: number;
   organisation: string;
   designation: string;
-}
+  password: string;
+  role: "alumni" | "admin";
+};
 
 export default function RegisterForm() {
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    batch: "",
-    branch: "",
-    email: "",
-    mobile: "",
-    organisation: "",
-    designation: "",
-  });
-  const [errors, setErrors] = useState<Partial<FormData>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const validateForm = (): Partial<FormData> => {
-    const newErrors: Partial<FormData> = {};
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.batch.trim()) newErrors.batch = "Batch is required";
-    if (!formData.branch.trim()) newErrors.branch = "Branch is required";
-    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Valid email is required";
-    }
-    if (!formData.mobile.trim() || !/^\d{10}$/.test(formData.mobile)) {
-      newErrors.mobile = "Valid 10-digit mobile number is required";
-    }
-    return newErrors;
-  };
+  const router = useRouter();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-    setErrors({});
+  const form = useForm<FormData>({
+    resolver: zodResolver(userSchema),
+    defaultValues: {
+      fullName: "",
+      gradYear: 1968,
+      branch: "",
+      email: "",
+      mobile: 1234567890,
+      organisation: "",
+      designation: "",
+      password: "",
+      role: "alumni",
+    },
+  });
+
+  const onSubmit = async (data: FormData) => {
+    const loading = toast.loading("Registering...");
+    console.log(JSON.stringify(data));
     try {
-      // Placeholder for API call
-      // await fetch('/api/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
       setSubmitted(true);
-      setFormData({
-        name: "",
-        batch: "",
-        branch: "",
-        email: "",
-        mobile: "",
-        organisation: "",
-        designation: "",
+      const res = await axios.post("/api/auth" , {
+        email : data.email,
+        fullName : data.fullName,
+        password : data.password,
+        gradYear : data.gradYear,
+        organisation : data.organisation,
+        designation : data.designation,
+        branch : data.branch,
+        mobile : data.mobile
       });
+      if(res.status === 200){
+        toast.dismiss(loading);
+        toast.success("Registeration completed!");
+        router.push("/");
+      }
+      form.reset();
     } catch (error) {
-      console.error("Submission error:", error);
+      toast.dismiss(loading);
+      if(isAxiosError(error)){
+        toast.error(error.response?.data.message);
+        console.log(error);
+      }
+      else{
+        toast.error("Something went wrong!");
+      }
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
+    finally{
+      setSubmitted(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
@@ -99,401 +118,216 @@ export default function RegisterForm() {
               </div>
             </div>
 
-            {/* Desktop Navigation */}
+            {/* Navigation */}
             <nav className="hidden md:flex space-x-8">
-              <a
-                href="/"
-                className="text-gray-700 hover:text-blue-600 font-medium"
-              >
+              <a href="/" className="text-gray-700 hover:text-blue-600 font-medium">
                 Home
               </a>
-              <a
-                href="/#about"
-                className="text-gray-700 hover:text-blue-600 font-medium"
-              >
+              <a href="/#about" className="text-gray-700 hover:text-blue-600 font-medium">
                 About
               </a>
-              <a
-                href="/Directory"
-                className="text-gray-700 hover:text-blue-600 font-medium"
-              >
+              <a href="/Directory" className="text-gray-700 hover:text-blue-600 font-medium">
                 Directory
               </a>
-              <a
-                href="/#events"
-                className="text-gray-700 hover:text-blue-600 font-medium"
-              >
+              <a href="/#events" className="text-gray-700 hover:text-blue-600 font-medium">
                 Events
               </a>
-              <a
-                href="/#contact"
-                className="text-gray-700 hover:text-blue-600 font-medium"
-              >
+              <a href="/#contact" className="text-gray-700 hover:text-blue-600 font-medium">
                 Contact
               </a>
             </nav>
 
-            {/* Desktop Login Button */}
             <Link href="/login" className="hidden md:block">
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                Login
-              </button>
+              <Button className="bg-blue-600 hover:bg-blue-700">Login</Button>
             </Link>
-
-            {/* Mobile Hamburger Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden text-gray-700 hover:text-blue-600 focus:outline-none"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {isMobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
-              </svg>
-            </button>
           </div>
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-200">
-              <div className="px-2 pt-2 pb-3 space-y-1">
-                <a
-                  href="/"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
-                >
-                  Home
-                </a>
-                <a
-                  href="/#about"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
-                >
-                  About
-                </a>
-                <a
-                  href="/#directory"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
-                >
-                  Directory
-                </a>
-                <a
-                  href="/#events"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
-                >
-                  Events
-                </a>
-                <a
-                  href="/#contact"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
-                >
-                  Contact
-                </a>
-                <div className="px-3 py-2">
-                  <Link href="/login">
-                    <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                      Login
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section
-        id="home"
-        className="bg-gradient-to-r from-blue-50 to-indigo-100 py-16"
-      >
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center">
-            <div className="flex justify-center items-center space-x-8 mb-8">
-              <Image
-                width={100}
-                height={100}
-                src="/Logo.png"
-                alt="Alumni Club Logo"
-                className="h-24 w-24"
-              />
-              <Image
-                width={100}
-                height={100}
-                src="/CollegeLogo.png"
-                alt="College Logo"
-                className="h-24 w-24"
-              />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Register to GEC Bilaspur Alumni Network
-            </h1>
-            <p className="text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
-              Join our community of accomplished professionals and stay
-              connected with your alma mater. Connect with fellow alumni and
-              expand your network.
-            </p>
+      {/* Hero */}
+      <section id="home" className="bg-gradient-to-r from-blue-50 to-indigo-100 py-16">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <div className="flex justify-center items-center space-x-8 mb-8">
+            <Image width={100} height={100} src="/Logo.png" alt="Alumni Club Logo" className="h-24 w-24" />
+            <Image width={100} height={100} src="/CollegeLogo.png" alt="College Logo" className="h-24 w-24" />
           </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Register to GEC Bilaspur Alumni Network
+          </h1>
+          <p className="text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
+            Join our community of accomplished professionals and stay connected with your alma mater.
+          </p>
         </div>
       </section>
 
-      {/* Registration Form Section */}
-      <section className="py-12 bg-gray-50">
-        <div className="max-w-2xl mx-auto px-4">
+      {/* Registration Form */}
+      <section className="py-12 bg-gray-50 text-black">
+        <div className="max-w-3xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">
             Complete Your Registration
           </h2>
-          {submitted && (
-            <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg border border-green-200">
-              <div className="flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Registration successful! Welcome to the GEC Bilaspur Alumni
-                Network.
-              </div>
-            </div>
-          )}
+
           <div className="bg-white rounded-lg shadow-lg p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    id="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 transition-colors placeholder-gray-400"
-                    placeholder="Enter your full name"
-                  />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Full Name */}
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your full name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="batch"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Graduation Year *
-                  </label>
-                  <input
-                    type="text"
-                    name="batch"
-                    id="batch"
-                    value={formData.batch}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 transition-colors placeholder-gray-400"
-                    placeholder="e.g., 2020"
-                  />
-                  {errors.batch && (
-                    <p className="mt-1 text-sm text-red-600">{errors.batch}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="branch"
-                  className="block text-sm font-medium text-gray-800 mb-2"
-                >
-                  Branch/Department *
-                </label>
-                <input
-                  type="text"
-                  name="branch"
-                  id="branch"
-                  value={formData.branch}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 transition-colors placeholder-gray-400"
-                  placeholder="e.g., Computer Science & Engineering"
                 />
-                {errors.branch && (
-                  <p className="mt-1 text-sm text-red-600">{errors.branch}</p>
-                )}
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
+                {/* Grad Year + Branch */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="gradYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Graduation Year *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1968}
+                            max={2030}
+                            placeholder="e.g., 2020"
+                            {...field}
+                            className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="branch"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Branch / Department *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a department" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Cse">Computer Science & Engineering</SelectItem>
+                            <SelectItem value="Et&t">Electronics & Tele Communication</SelectItem>
+                            <SelectItem value="Mech">Mechanical Engineering</SelectItem>
+                            <SelectItem value="Civil">Civil Engineering</SelectItem>
+                            <SelectItem value="Elec">Electrical Engineering</SelectItem>
+                            <SelectItem value="Mining">Mining Engineering</SelectItem>
+                            <SelectItem value="It">Information Technology</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Email + Mobile */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
                     name="email"
-                    id="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 transition-colors placeholder-gray-400"
-                    placeholder="your.email@example.com"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email *</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="your.email@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="mobile"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Mobile Number *
-                  </label>
-                  <input
-                    type="tel"
+                  <FormField
+                    control={form.control}
                     name="mobile"
-                    id="mobile"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 transition-colors placeholder-gray-400"
-                    placeholder="9876543210"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mobile Number *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="9876543210"
+                            {...field}
+                            className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  {errors.mobile && (
-                    <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
-                  )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    htmlFor="organisation"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Current Organisation
-                  </label>
-                  <input
-                    type="text"
+                {/* Organisation + Designation */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
                     name="organisation"
-                    id="organisation"
-                    value={formData.organisation}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 transition-colors placeholder-gray-400"
-                    placeholder="Company/Organization name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Organisation</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Company/Organization name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="designation"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Current Designation
-                  </label>
-                  <input
-                    type="text"
+                  <FormField
+                    control={form.control}
                     name="designation"
-                    id="designation"
-                    value={formData.designation}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 transition-colors placeholder-gray-400"
-                    placeholder="Your job title/position"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Designation</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your job title/position" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-              </div>
 
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors font-semibold text-lg"
-                >
+                {/* Password */}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Enter a password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
                   Join Alumni Network
-                </button>
-              </div>
-
-              <div className="text-center text-sm text-gray-600 pt-4">
-                Already registered?{" "}
-                <Link
-                  href="/login"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Sign in here
-                </Link>
-              </div>
-            </form>
+                </Button>
+              </form>
+            </Form>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 ">
-          <div className="text-center">
-            <div className="flex justify-center items-center space-x-4 mb-4">
-              <Image
-                width={100}
-                height={100}
-                src="/CollegeLogo.png"
-                alt="GEC Bilaspur Logo"
-                className="h-8 w-8"
-              />
-              <p className="text-lg font-semibold">
-                GEC Bilaspur Alumni Association
-              </p>
-            </div>
-            <p className="text-gray-400 mb-4">
-              Connecting generations of engineers since 1964
-            </p>
-            <div className="flex justify-center space-x-6">
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Privacy Policy
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Terms of Service
-              </a>
-              <a
-                href="#contact"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Contact Us
-              </a>
-            </div>
-            <p className="text-gray-500 text-sm mt-4">
-              © 2025 Government Engineering College Bilaspur. All rights
-              reserved.
-            </p>
-          </div>
-        </div>
+      <footer className="bg-gray-800 text-white py-8 text-center">
+        <p className="text-gray-500 text-sm">
+          © 2025 GEC Bilaspur Alumni Association. All rights reserved.
+        </p>
       </footer>
     </div>
   );
