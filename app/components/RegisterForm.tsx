@@ -80,7 +80,7 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
       const maybeUrl = first.url;
       if (typeof maybeUrl === "function") {
         // some builds expose a getter
-        url = String((maybeUrl as Function)());
+        url = String((maybeUrl as (() => unknown))());
       } else if (typeof first.ufsUrl === "string") {
         url = first.ufsUrl as string;
       } else if (typeof maybeUrl === "string") {
@@ -90,6 +90,7 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
       // fallback
       if (typeof first.ufsUrl === "string") url = first.ufsUrl as string;
       if (!url && typeof first.url === "string") url = first.url as string;
+      console.log(err);
     }
 
     // mime/type and name (best-effort)
