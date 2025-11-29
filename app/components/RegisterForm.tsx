@@ -57,33 +57,56 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [type, setType] = useState<string | undefined>(undefined);
 
-  const handleClientComplete = (res: any) => {
+  // Avoid `any` — accept unknown and narrow
+  const handleClientComplete = (res: unknown) => {
     setLoadingUpload(false);
 
-    if (res && res[0]) {
-      // Prefer the signed URL getter if provided, fallback to ufsUrl/url
-      let url: string | undefined;
-      try {
-        url = typeof res[0].url === "function" ? res[0].url() : res[0].ufsUrl || res[0].url;
-      } catch {
-        url = res[0].ufsUrl || res[0].url;
-      }
-
-      const mime = res[0].type;
-      const name = res[0].name;
-
-      setType(mime);
-
-      if (url) {
-        setFilePreviewUrl(url);
-        onUploaded(url);
-        toast.success("File uploaded successfully!");
-        console.log("Uploaded file:", { name, mime, url });
-        return;
-      }
+    if (!res || !Array.isArray(res) || res.length === 0) {
+      toast.error("Upload failed: no response.");
+      onUploaded(null);
+      return;
     }
 
-    toast.error("Upload failed: no URL returned.");
+    const first = res[0] as Record<string, unknown> | undefined;
+    if (!first) {
+      toast.error("Upload failed: invalid response shape.");
+      onUploaded(null);
+      return;
+    }
+
+    // Some UploadThing versions provide a .url() function, others ufsUrl or url string
+    let url: string | undefined;
+    try {
+      const maybeUrl = first.url;
+      if (typeof maybeUrl === "function") {
+        // some builds expose a getter
+        url = String((maybeUrl as Function)());
+      } else if (typeof first.ufsUrl === "string") {
+        url = first.ufsUrl as string;
+      } else if (typeof maybeUrl === "string") {
+        url = maybeUrl as string;
+      }
+    } catch (err) {
+      // fallback
+      if (typeof first.ufsUrl === "string") url = first.ufsUrl as string;
+      if (!url && typeof first.url === "string") url = first.url as string;
+    }
+
+    // mime/type and name (best-effort)
+    const mime = typeof first.type === "string" ? (first.type as string) : undefined;
+    const name = typeof first.name === "string" ? (first.name as string) : undefined;
+
+    setType(mime);
+
+    if (url) {
+      setFilePreviewUrl(url);
+      onUploaded(url);
+      toast.success("File uploaded successfully!");
+      console.log("Uploaded file:", { name, mime, url });
+      return;
+    }
+
+    toast.error("Upload failed: no file URL returned.");
     onUploaded(null);
   };
 
@@ -116,6 +139,7 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
             container: "flex flex-col items-center gap-2",
             allowedContent: "text-sm text-gray-600",
           }}
+          // some UploadThing versions expose onUploadBegin; if your install's types require a different name, remove it
           onUploadBegin={() => setLoadingUpload(true)}
           onClientUploadComplete={handleClientComplete}
           onUploadError={handleError}
@@ -124,23 +148,27 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
         <div className="flex flex-col items-center gap-3 mt-3 w-full">
           {/* IMAGE PREVIEW */}
           {isImage(type) && (
-            <img
+            // use native <img> to avoid Next/Image remote width issues for preview URLs
+            // keep dimensions / object-contain styling so it looks good
+            <Image
+            height={100}
+            width={100}
               src={filePreviewUrl}
               alt="Uploaded proof"
               className="rounded-lg border shadow-sm max-w-full object-contain max-h-80"
             />
           )}
 
-          {/* PDF PREVIEW - use Google viewer if direct iframe blocked */}
+          {/* PDF PREVIEW - use iframe */}
           {isPdf(type) && (
             <div className="w-full">
               <div className="mb-2 text-sm text-gray-600">PDF Preview:</div>
               <div className="w-full h-80 border rounded overflow-hidden">
-                {/* try direct iframe first; if blocked, Google Viewer usually works */}
                 <iframe
                   src={filePreviewUrl}
                   title="PDF preview"
                   className="w-full h-full"
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                 />
               </div>
               <div className="mt-2">

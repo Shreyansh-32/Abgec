@@ -1,4 +1,4 @@
-import { BookOpen, Award } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
 export default function About() {
   return (

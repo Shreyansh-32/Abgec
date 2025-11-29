@@ -90,21 +90,21 @@ export default function LoginForm() {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8">
-              <a href="/" className="text-gray-700 hover:text-blue-600 font-medium">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium">
                 Home
-              </a>
-              <a href="/#about" className="text-gray-700 hover:text-blue-600 font-medium">
+              </Link>
+              <Link href="/#about" className="text-gray-700 hover:text-blue-600 font-medium">
                 About
-              </a>
-              <a href="/Directory" className="text-gray-700 hover:text-blue-600 font-medium">
+              </Link>
+              <Link href="/Directory" className="text-gray-700 hover:text-blue-600 font-medium">
                 Directory
-              </a>
-              <a href="/#events" className="text-gray-700 hover:text-blue-600 font-medium">
+              </Link>
+              <Link href="/#events" className="text-gray-700 hover:text-blue-600 font-medium">
                 Events
-              </a>
-              <a href="/#contact" className="text-gray-700 hover:text-blue-600 font-medium">
+              </Link>
+              <Link href="/#contact" className="text-gray-700 hover:text-blue-600 font-medium">
                 Contact
-              </a>
+              </Link>
             </nav>
 
             {/* Desktop Register Button */}
