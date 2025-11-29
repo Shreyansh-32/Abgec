@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
     proofPicture,
     location
   } = data;
+
   try {
+    // FIX: location was missing here!
     const res = await userSchema.safeParse({
       fullName,
       gradYear,
@@ -29,6 +31,8 @@ export async function POST(req: NextRequest) {
       organisation,
       designation,
       role: "alumni",
+      location, // Added location to validation check
+      proofPicture, 
     });
 
     if (res.success) {
@@ -44,7 +48,9 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+      
       const hashedPassword = await bcrypt.hash(password, 10);
+      
       await prisma.user.create({
         data: {
           email,
@@ -57,7 +63,7 @@ export async function POST(req: NextRequest) {
           organisation,
           role: "alumni",
           proofPicture,
-          location
+          location // Saving location to DB
         },
       });
 
@@ -66,12 +72,14 @@ export async function POST(req: NextRequest) {
         { status: 200 }
       );
     } else {
+      // Return specific error details to help debugging
       return NextResponse.json(
-        { message: "Invalid input format", res },
+        { message: "Invalid input format", errors: res.error.flatten() },
         { status: 411 }
       );
     }
   } catch (error) {
+    console.error("Signup error:", error);
     return NextResponse.json(
       { message: "Internal server error", error },
       { status: 500 }

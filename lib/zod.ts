@@ -2,26 +2,16 @@ import z from "zod";
 
 export const userSchema = z.object({
     email: z.string().email(),
-    password: z.string()
-    .min(8, { message: 'Minimum length 8' })
-    .max(20, { message: 'Maximum length 20' })
-    .refine((password) => /[A-Z]/.test(password), {
-      message: 'Must contain one uppercase alphabet',
-    })
-    .refine((password) => /[a-z]/.test(password), {
-      message: 'Must contain one lowercase alphabet',
-    })
-    .refine((password) => /[0-9]/.test(password), { message: 'Must contain one digit' })
-    .refine((password) => /[!@#$%^&*]/.test(password), {
-      message: 'Must contain one specail character',
-    }),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     fullName: z.string(),
     designation : z.string(),
     organisation : z.string(),
     branch : z.string(),
     gradYear : z.number().gte(1964),
     mobile : z.number().gte(1000000000).lte(9999999999),
-    role : z.enum(["alumni" , "admin"])
+    role : z.enum(["alumni" , "admin"]),
+    location: z.string().min(2, "Location is required (City/State)"),
+    proofPicture: z.string().optional(),
 });
 
 export const signinSchema = z.object({

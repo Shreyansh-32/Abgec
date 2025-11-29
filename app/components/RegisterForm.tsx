@@ -29,7 +29,7 @@ import { useRouter } from "next/navigation";
 import { UploadButton } from "@/utils/uploadthing";
 
 /**
- * Form data type — added `location`
+ * Form data type — Location is now REQUIRED
  */
 type FormData = {
   fullName: string;
@@ -42,7 +42,7 @@ type FormData = {
   password: string;
   role: "alumni" | "admin";
   proofPicture?: string;
-  location?: string;
+  location: string; // Removed '?' to enforce it in TypeScript
 };
 
 // Props used by the ProofUpload component
@@ -52,12 +52,11 @@ type ProofUploadProps = {
   setLoadingUpload: (loading: boolean) => void;
 };
 
-// ------------------- FILE UPLOAD COMPONENT (kept outside register) -------------------
+// ------------------- FILE UPLOAD COMPONENT -------------------
 const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploadProps) => {
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [type, setType] = useState<string | undefined>(undefined);
 
-  // Avoid `any` — accept unknown and narrow
   const handleClientComplete = (res: unknown) => {
     setLoadingUpload(false);
 
@@ -74,12 +73,10 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
       return;
     }
 
-    // Some UploadThing versions provide a .url() function, others ufsUrl or url string
     let url: string | undefined;
     try {
       const maybeUrl = first.url;
       if (typeof maybeUrl === "function") {
-        // some builds expose a getter
         url = String((maybeUrl as (() => unknown))());
       } else if (typeof first.ufsUrl === "string") {
         url = first.ufsUrl as string;
@@ -87,13 +84,11 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
         url = maybeUrl as string;
       }
     } catch (err) {
-      // fallback
       if (typeof first.ufsUrl === "string") url = first.ufsUrl as string;
       if (!url && typeof first.url === "string") url = first.url as string;
       console.log(err);
     }
 
-    // mime/type and name (best-effort)
     const mime = typeof first.type === "string" ? (first.type as string) : undefined;
     const name = typeof first.name === "string" ? (first.name as string) : undefined;
 
@@ -103,7 +98,6 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
       setFilePreviewUrl(url);
       onUploaded(url);
       toast.success("File uploaded successfully!");
-      console.log("Uploaded file:", { name, mime, url });
       return;
     }
 
@@ -140,7 +134,6 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
             container: "flex flex-col items-center gap-2",
             allowedContent: "text-sm text-gray-600",
           }}
-          // some UploadThing versions expose onUploadBegin; if your install's types require a different name, remove it
           onUploadBegin={() => setLoadingUpload(true)}
           onClientUploadComplete={handleClientComplete}
           onUploadError={handleError}
@@ -149,18 +142,16 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
         <div className="flex flex-col items-center gap-3 mt-3 w-full">
           {/* IMAGE PREVIEW */}
           {isImage(type) && (
-            // use native <img> to avoid Next/Image remote width issues for preview URLs
-            // keep dimensions / object-contain styling so it looks good
             <Image
-            height={100}
-            width={100}
+              height={100}
+              width={100}
               src={filePreviewUrl}
               alt="Uploaded proof"
               className="rounded-lg border shadow-sm max-w-full object-contain max-h-80"
             />
           )}
 
-          {/* PDF PREVIEW - use iframe */}
+          {/* PDF PREVIEW */}
           {isPdf(type) && (
             <div className="w-full">
               <div className="mb-2 text-sm text-gray-600">PDF Preview:</div>
@@ -180,7 +171,6 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
             </div>
           )}
 
-          {/* fallback link for other types */}
           {!isImage(type) && !isPdf(type) && (
             <a href={filePreviewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
               View uploaded file
@@ -199,7 +189,6 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
     </div>
   );
 };
-// ---------------------------------------------------------------------------------------
 
 export default function RegisterForm() {
   const [submitted, setSubmitted] = useState(false);
@@ -209,6 +198,7 @@ export default function RegisterForm() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(userSchema),
+    mode: "onChange", // This ensures continuous validation
     defaultValues: {
       fullName: "",
       gradYear: 1968,
@@ -236,7 +226,7 @@ export default function RegisterForm() {
       const res = await axios.post("/api/auth", {
         ...data,
         proofPicture: proofUrl,
-        location: data.location ?? "",
+        location: data.location, // Explicitly pass location
       });
 
       if (res.status === 200) {
@@ -289,6 +279,7 @@ export default function RegisterForm() {
           <div className="bg-white rounded-lg shadow-lg p-8">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                
                 {/* Full Name */}
                 <FormField
                   control={form.control}
@@ -317,7 +308,7 @@ export default function RegisterForm() {
                             <SelectTrigger>
                               <SelectValue placeholder="Select Year" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="max-h-[200px]">
                               {years.map((year) => (
                                 <SelectItem key={year} value={String(year)}>
                                   {year}
@@ -425,13 +416,13 @@ export default function RegisterForm() {
                   />
                 </div>
 
-                {/* Location (new) */}
+                {/* Location - REQUIRED now */}
                 <FormField
                   control={form.control}
                   name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location (City / State)</FormLabel>
+                      <FormLabel>Location (City / State) *</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., Bilaspur, Chhattisgarh" {...field} />
                       </FormControl>
@@ -446,7 +437,7 @@ export default function RegisterForm() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>Password *</FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="Enter password" {...field} />
                       </FormControl>
@@ -459,7 +450,7 @@ export default function RegisterForm() {
                 <ProofUpload onUploaded={(url) => setProofUrl(url)} loadingUpload={loadingUpload} setLoadingUpload={setLoadingUpload} />
 
                 {/* Submit */}
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={submitted || !proofUrl}>
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={submitted || !proofUrl || loadingUpload}>
                   {submitted ? "Submitting..." : "Join Alumni Network"}
                 </Button>
               </form>
