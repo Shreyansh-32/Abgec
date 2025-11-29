@@ -1,7 +1,7 @@
 "use client";
 
 import axios, { isAxiosError } from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import {
   InputOTP,
   InputOTPGroup,
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function VerifyPage() {
+function VerifyOTP() {
   const searchParams = useSearchParams();
   const userIdParam = searchParams.get("userId");
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function VerifyPage() {
   const [otp, setOtp] = useState<string>("");
   const [timer, setTimer] = useState<number>(60);
   const [canResend, setCanResend] = useState<boolean>(false);
-  const [resendUsed, setResendUsed] = useState<boolean>(false); 
+  const [resendUsed, setResendUsed] = useState<boolean>(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -97,13 +97,15 @@ export default function VerifyPage() {
           Enter the 6-digit code sent to your email.
         </p>
 
-        <InputOTP maxLength={6} onChange={(e) => setOtp(e)}>
-          <InputOTPGroup>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <InputOTPSlot key={i} index={i} />
-            ))}
-          </InputOTPGroup>
-        </InputOTP>
+        <div className="flex justify-center">
+          <InputOTP maxLength={6} value={otp} onChange={(value) => setOtp(value)}>
+            <InputOTPGroup>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <InputOTPSlot key={i} index={i} />
+              ))}
+            </InputOTPGroup>
+          </InputOTP>
+        </div>
 
         <Button
           onClick={handleVerify}
@@ -119,7 +121,6 @@ export default function VerifyPage() {
             </p>
           )}
 
-          
           {!resendUsed && canResend && (
             <button
               onClick={handleResend}
@@ -128,8 +129,23 @@ export default function VerifyPage() {
               Resend OTP
             </button>
           )}
+          
+          {resendUsed && (
+             <p className="text-gray-400 text-sm">
+               Resend limit reached
+             </p>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+// WRAPPER to fix "missing suspense boundary" error
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <VerifyOTP />
+    </Suspense>
   );
 }
