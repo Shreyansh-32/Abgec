@@ -4,24 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
 export async function POST(req: NextRequest) {
-  const data = await req.json();
-
-  const {
-    fullName,
-    gradYear,
-    branch,
-    email,
-    password,
-    mobile,
-    organisation,
-    designation,
-    proofPicture,
-    location
-  } = data;
-
   try {
-    // FIX: location was missing here!
-    const res = await userSchema.safeParse({
+    const data = await req.json();
+
+    const {
       fullName,
       gradYear,
       branch,
@@ -30,40 +16,60 @@ export async function POST(req: NextRequest) {
       mobile,
       organisation,
       designation,
+      proofPicture,
+      location
+    } = data;
+
+    // 1. Validate inputs using Zod
+    // Note: 'mobile' is now passed as a string (e.g., "9876543210")
+    // 'location' is now required
+    const res = await userSchema.safeParse({
+      fullName,
+      gradYear,
+      branch,
+      email,
+      password,
+      mobile, 
+      organisation,
+      designation,
       role: "alumni",
-      location, // Added location to validation check
+      location,
       proofPicture, 
     });
 
     if (res.success) {
-      const user = await prisma.user.findFirst({
+      // 2. Check if user exists
+      const existingUser = await prisma.user.findFirst({
         where: {
           email,
         },
       });
 
-      if (user) {
+      if (existingUser) {
         return NextResponse.json(
-          { message: "User with given email already exist" },
+          { message: "User with given email already exists" },
           { status: 400 }
         );
       }
       
+      // 3. Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
       
+      // 4. Create user
+      // Ensure your prisma.schema has 'mobile' set to String type!
       await prisma.user.create({
         data: {
           email,
           password: hashedPassword,
           fullName,
           gradYear,
-          mobile,
+          mobile, // Saving as String to prevent Int overflow
           branch,
           designation,
           organisation,
           role: "alumni",
           proofPicture,
-          location // Saving location to DB
+          location
         },
       });
 
@@ -72,7 +78,7 @@ export async function POST(req: NextRequest) {
         { status: 200 }
       );
     } else {
-      // Return specific error details to help debugging
+      // Return validation errors
       return NextResponse.json(
         { message: "Invalid input format", errors: res.error.flatten() },
         { status: 411 }

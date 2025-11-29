@@ -14,7 +14,7 @@ model User{
   branch    String
   email     String  @unique
   password   String
-  mobile     Int
+  mobile     String
   organisation    String
   designation    String
   role      String

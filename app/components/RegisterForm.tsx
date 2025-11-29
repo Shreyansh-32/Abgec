@@ -27,23 +27,10 @@ import {
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { UploadButton } from "@/utils/uploadthing";
+import { z } from "zod";
 
-/**
- * Form data type — Location is now REQUIRED
- */
-type FormData = {
-  fullName: string;
-  gradYear: number;
-  branch: string;
-  email: string;
-  mobile: number;
-  organisation: string;
-  designation: string;
-  password: string;
-  role: "alumni" | "admin";
-  proofPicture?: string;
-  location: string; // Removed '?' to enforce it in TypeScript
-};
+// FIX: Use z.infer to automatically match the schema (mobile is string)
+type FormData = z.infer<typeof userSchema>;
 
 // Props used by the ProofUpload component
 type ProofUploadProps = {
@@ -198,13 +185,13 @@ export default function RegisterForm() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(userSchema),
-    mode: "onChange", // This ensures continuous validation
+    mode: "onChange",
     defaultValues: {
       fullName: "",
       gradYear: 1968,
       branch: "",
       email: "",
-      mobile: undefined as unknown as number,
+      mobile: "", // FIX: Default to empty string
       organisation: "",
       designation: "",
       password: "",
@@ -226,7 +213,7 @@ export default function RegisterForm() {
       const res = await axios.post("/api/auth", {
         ...data,
         proofPicture: proofUrl,
-        location: data.location, // Explicitly pass location
+        location: data.location,
       });
 
       if (res.status === 200) {
@@ -248,7 +235,7 @@ export default function RegisterForm() {
     }
   };
 
-  const years = Array.from({ length: 2030 - 1968 + 1 }, (_, i) => 1968 + i);
+  const years = Array.from({ length: 2030 - 1964 + 1 }, (_, i) => 1964 + i);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -377,7 +364,8 @@ export default function RegisterForm() {
                             placeholder="9876543210"
                             maxLength={10}
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value.slice(0, 10)))}
+                            // FIX: Removed Number() casting to support Zod string schema
+                            onChange={(e) => field.onChange(e.target.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -393,7 +381,7 @@ export default function RegisterForm() {
                     name="organisation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Current Organisation</FormLabel>
+                        <FormLabel>Current Organisation *</FormLabel>
                         <FormControl>
                           <Input placeholder="Company/Organization" {...field} />
                         </FormControl>
@@ -406,7 +394,7 @@ export default function RegisterForm() {
                     name="designation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Current Designation</FormLabel>
+                        <FormLabel>Current Designation *</FormLabel>
                         <FormControl>
                           <Input placeholder="Your position" {...field} />
                         </FormControl>
@@ -416,7 +404,7 @@ export default function RegisterForm() {
                   />
                 </div>
 
-                {/* Location - REQUIRED now */}
+                {/* Location - REQUIRED */}
                 <FormField
                   control={form.control}
                   name="location"
@@ -439,7 +427,7 @@ export default function RegisterForm() {
                     <FormItem>
                       <FormLabel>Password *</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Enter password" {...field} />
+                        <Input type="password" placeholder="Min 8 characters" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
