@@ -12,11 +12,24 @@ model User{
   fullName   String
   gradYear    Int
   branch    String
-  email     String
+  email     String  @unique
   password   String
   mobile     Int
   organisation    String
   designation    String
   role      String
+  location String?
   verified    Boolean   @default(false)
+  isEmailVerified   Boolean   @default(false)
+  profilePicture    String?
+  proofPicture      String?
+  otp   Otp[]
+}
+
+model Otp{
+  id    Int     @id     @default(autoincrement())
+  userId   Int
+  otp     String
+  user    User    @relation(fields: [userId] , references: [id])
+  expires   DateTime
 }

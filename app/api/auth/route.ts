@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
     mobile,
     organisation,
     designation,
+    proofPicture,
+    location
   } = data;
   try {
     const res = await userSchema.safeParse({
@@ -54,6 +56,8 @@ export async function POST(req: NextRequest) {
           designation,
           organisation,
           role: "alumni",
+          proofPicture,
+          location
         },
       });
 

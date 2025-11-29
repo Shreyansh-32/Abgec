@@ -51,7 +51,7 @@ export default function LoginForm() {
       toast.dismiss(loadingToast);
       if(res?.ok){
         toast.success("Sign in successfull");
-        router.push("/");
+        router.push("/profile");
       }
       else {
         toast.error("Invalid username or password");
@@ -69,13 +69,15 @@ export default function LoginForm() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
+              <Link href={"/"} className="cursor-pointer">
               <Image
-                width={100}
-                height={100}
                 src="/CollegeLogo.png"
-                alt="GEC Bilaspur Logo"
-                className="h-12 w-12"
+                alt="Logo"
+                width={48}
+                height={48}
+                className="rounded-md"
               />
+            </Link>
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">
                   Alumni Association

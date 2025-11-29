@@ -26,7 +26,11 @@ import {
 } from "@/components/ui/select";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { UploadButton } from "@/utils/uploadthing";
 
+/**
+ * Form data type — added `location`
+ */
 type FormData = {
   fullName: string;
   gradYear: number;
@@ -37,10 +41,141 @@ type FormData = {
   designation: string;
   password: string;
   role: "alumni" | "admin";
+  proofPicture?: string;
+  location?: string;
 };
+
+// Props used by the ProofUpload component
+type ProofUploadProps = {
+  onUploaded: (url: string | null) => void;
+  loadingUpload: boolean;
+  setLoadingUpload: (loading: boolean) => void;
+};
+
+// ------------------- FILE UPLOAD COMPONENT (kept outside register) -------------------
+const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploadProps) => {
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [type, setType] = useState<string | undefined>(undefined);
+
+  const handleClientComplete = (res: any) => {
+    setLoadingUpload(false);
+
+    if (res && res[0]) {
+      // Prefer the signed URL getter if provided, fallback to ufsUrl/url
+      let url: string | undefined;
+      try {
+        url = typeof res[0].url === "function" ? res[0].url() : res[0].ufsUrl || res[0].url;
+      } catch {
+        url = res[0].ufsUrl || res[0].url;
+      }
+
+      const mime = res[0].type;
+      const name = res[0].name;
+
+      setType(mime);
+
+      if (url) {
+        setFilePreviewUrl(url);
+        onUploaded(url);
+        toast.success("File uploaded successfully!");
+        console.log("Uploaded file:", { name, mime, url });
+        return;
+      }
+    }
+
+    toast.error("Upload failed: no URL returned.");
+    onUploaded(null);
+  };
+
+  const handleError = (err: Error) => {
+    setLoadingUpload(false);
+    console.error("Upload error:", err);
+    toast.error("Upload failed. Please try again.");
+    onUploaded(null);
+  };
+
+  const removeFile = () => {
+    setFilePreviewUrl(null);
+    setType(undefined);
+    onUploaded(null);
+    toast("File removed", { icon: "🗑️" });
+  };
+
+  const isImage = (mime?: string) => mime?.startsWith("image/");
+  const isPdf = (mime?: string) => mime === "application/pdf";
+
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-gray-700 mb-2">Upload Marksheet / TC / Degree (max 2MB)</p>
+
+      {!filePreviewUrl ? (
+        <UploadButton
+          endpoint="documentUploader"
+          appearance={{
+            button: "bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700",
+            container: "flex flex-col items-center gap-2",
+            allowedContent: "text-sm text-gray-600",
+          }}
+          onUploadBegin={() => setLoadingUpload(true)}
+          onClientUploadComplete={handleClientComplete}
+          onUploadError={handleError}
+        />
+      ) : (
+        <div className="flex flex-col items-center gap-3 mt-3 w-full">
+          {/* IMAGE PREVIEW */}
+          {isImage(type) && (
+            <img
+              src={filePreviewUrl}
+              alt="Uploaded proof"
+              className="rounded-lg border shadow-sm max-w-full object-contain max-h-80"
+            />
+          )}
+
+          {/* PDF PREVIEW - use Google viewer if direct iframe blocked */}
+          {isPdf(type) && (
+            <div className="w-full">
+              <div className="mb-2 text-sm text-gray-600">PDF Preview:</div>
+              <div className="w-full h-80 border rounded overflow-hidden">
+                {/* try direct iframe first; if blocked, Google Viewer usually works */}
+                <iframe
+                  src={filePreviewUrl}
+                  title="PDF preview"
+                  className="w-full h-full"
+                />
+              </div>
+              <div className="mt-2">
+                <a href={filePreviewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">
+                  Open full document
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* fallback link for other types */}
+          {!isImage(type) && !isPdf(type) && (
+            <a href={filePreviewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+              View uploaded file
+            </a>
+          )}
+
+          <div className="flex gap-4 mt-3">
+            <button type="button" onClick={removeFile} className="text-red-600 hover:text-red-800 text-sm">
+              Remove File
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loadingUpload && <div className="mt-2 text-sm text-gray-500">Uploading…</div>}
+    </div>
+  );
+};
+// ---------------------------------------------------------------------------------------
 
 export default function RegisterForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [loadingUpload, setLoadingUpload] = useState(false);
   const router = useRouter();
 
   const form = useForm<FormData>({
@@ -50,92 +185,66 @@ export default function RegisterForm() {
       gradYear: 1968,
       branch: "",
       email: "",
-      mobile: 1234567890,
+      mobile: undefined as unknown as number,
       organisation: "",
       designation: "",
       password: "",
       role: "alumni",
+      proofPicture: "",
+      location: "",
     },
   });
 
   const onSubmit = async (data: FormData) => {
+    if (!proofUrl) {
+      toast.error("Please upload your marksheet/TC/Degree before submitting.");
+      return;
+    }
+
     const loading = toast.loading("Registering...");
-    console.log(JSON.stringify(data));
     try {
       setSubmitted(true);
-      const res = await axios.post("/api/auth" , {
-        email : data.email,
-        fullName : data.fullName,
-        password : data.password,
-        gradYear : data.gradYear,
-        organisation : data.organisation,
-        designation : data.designation,
-        branch : data.branch,
-        mobile : data.mobile
+      const res = await axios.post("/api/auth", {
+        ...data,
+        proofPicture: proofUrl,
+        location: data.location ?? "",
       });
-      if(res.status === 200){
+
+      if (res.status === 200) {
         toast.dismiss(loading);
-        toast.success("Registeration completed!");
+        toast.success("Registration completed!");
         router.push("/");
       }
       form.reset();
+      setProofUrl(null);
     } catch (error) {
       toast.dismiss(loading);
-      if(isAxiosError(error)){
-        toast.error(error.response?.data.message);
-        console.log(error);
-      }
-      else{
+      if (isAxiosError(error)) {
+        toast.error(error.response?.data.message || "Registration failed");
+      } else {
         toast.error("Something went wrong!");
       }
-    }
-    finally{
+    } finally {
       setSubmitted(false);
     }
   };
 
+  const years = Array.from({ length: 2030 - 1968 + 1 }, (_, i) => 1968 + i);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <Image
-                width={100}
-                height={100}
-                src="/CollegeLogo.png"
-                alt="GEC Bilaspur Logo"
-                className="h-12 w-12"
-              />
+              <Link href={"/"} className="cursor-pointer">
+                <Image src="/CollegeLogo.png" alt="Logo" width={48} height={48} className="rounded-md" />
+              </Link>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">
-                  Alumni Association
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Government Engineering College Bilaspur
-                </p>
+                <h1 className="text-lg font-semibold text-gray-900">Alumni Association</h1>
+                <p className="text-sm text-gray-600">Government Engineering College Bilaspur</p>
               </div>
             </div>
-
-            {/* Navigation */}
-            <nav className="hidden md:flex space-x-8">
-              <a href="/" className="text-gray-700 hover:text-blue-600 font-medium">
-                Home
-              </a>
-              <a href="/#about" className="text-gray-700 hover:text-blue-600 font-medium">
-                About
-              </a>
-              <a href="/Directory" className="text-gray-700 hover:text-blue-600 font-medium">
-                Directory
-              </a>
-              <a href="/#events" className="text-gray-700 hover:text-blue-600 font-medium">
-                Events
-              </a>
-              <a href="/#contact" className="text-gray-700 hover:text-blue-600 font-medium">
-                Contact
-              </a>
-            </nav>
 
             <Link href="/login" className="hidden md:block">
               <Button className="bg-blue-600 hover:bg-blue-700">Login</Button>
@@ -144,28 +253,9 @@ export default function RegisterForm() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section id="home" className="bg-gradient-to-r from-blue-50 to-indigo-100 py-16">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="flex justify-center items-center space-x-8 mb-8">
-            <Image width={100} height={100} src="/Logo.png" alt="Alumni Club Logo" className="h-24 w-24" />
-            <Image width={100} height={100} src="/CollegeLogo.png" alt="College Logo" className="h-24 w-24" />
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Register to GEC Bilaspur Alumni Network
-          </h1>
-          <p className="text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
-            Join our community of accomplished professionals and stay connected with your alma mater.
-          </p>
-        </div>
-      </section>
-
-      {/* Registration Form */}
       <section className="py-12 bg-gray-50 text-black">
         <div className="max-w-3xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">
-            Complete Your Registration
-          </h2>
+          <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">Complete Your Registration</h2>
 
           <div className="bg-white rounded-lg shadow-lg p-8">
             <Form {...form}>
@@ -194,41 +284,46 @@ export default function RegisterForm() {
                       <FormItem>
                         <FormLabel>Graduation Year *</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min={1968}
-                            max={2030}
-                            placeholder="e.g., 2020"
-                            {...field}
-                            className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
+                          <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={String(field.value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {years.map((year) => (
+                                <SelectItem key={year} value={String(year)}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="branch"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Branch / Department *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a department" />
+                              <SelectValue placeholder="Select Department" />
                             </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Cse">Computer Science & Engineering</SelectItem>
-                            <SelectItem value="Et&t">Electronics & Tele Communication</SelectItem>
-                            <SelectItem value="Mech">Mechanical Engineering</SelectItem>
-                            <SelectItem value="Civil">Civil Engineering</SelectItem>
-                            <SelectItem value="Elec">Electrical Engineering</SelectItem>
-                            <SelectItem value="Mining">Mining Engineering</SelectItem>
-                            <SelectItem value="It">Information Technology</SelectItem>
-                          </SelectContent>
-                        </Select>
+                            <SelectContent>
+                              <SelectItem value="Cse">Computer Science</SelectItem>
+                              <SelectItem value="Et&t">Electronics & Telecomm</SelectItem>
+                              <SelectItem value="Mech">Mechanical</SelectItem>
+                              <SelectItem value="Civil">Civil</SelectItem>
+                              <SelectItem value="Elec">Electrical</SelectItem>
+                              <SelectItem value="Mining">Mining</SelectItem>
+                              <SelectItem value="It">Information Tech</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -258,10 +353,11 @@ export default function RegisterForm() {
                         <FormLabel>Mobile Number *</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="tel"
                             placeholder="9876543210"
+                            maxLength={10}
                             {...field}
-                            className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            onChange={(e) => field.onChange(Number(e.target.value.slice(0, 10)))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -279,7 +375,7 @@ export default function RegisterForm() {
                       <FormItem>
                         <FormLabel>Current Organisation</FormLabel>
                         <FormControl>
-                          <Input placeholder="Company/Organization name" {...field} />
+                          <Input placeholder="Company/Organization" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -292,13 +388,28 @@ export default function RegisterForm() {
                       <FormItem>
                         <FormLabel>Current Designation</FormLabel>
                         <FormControl>
-                          <Input placeholder="Your job title/position" {...field} />
+                          <Input placeholder="Your position" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+
+                {/* Location (new) */}
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (City / State)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Bilaspur, Chhattisgarh" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Password */}
                 <FormField
@@ -308,27 +419,25 @@ export default function RegisterForm() {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Enter a password" {...field} />
+                        <Input type="password" placeholder="Enter password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                  Join Alumni Network
+                {/* File Upload */}
+                <ProofUpload onUploaded={(url) => setProofUrl(url)} loadingUpload={loadingUpload} setLoadingUpload={setLoadingUpload} />
+
+                {/* Submit */}
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={submitted || !proofUrl}>
+                  {submitted ? "Submitting..." : "Join Alumni Network"}
                 </Button>
               </form>
             </Form>
           </div>
         </div>
       </section>
-
-      <footer className="bg-gray-800 text-white py-8 text-center">
-        <p className="text-gray-500 text-sm">
-          © 2025 GEC Bilaspur Alumni Association. All rights reserved.
-        </p>
-      </footer>
     </div>
   );
 }
