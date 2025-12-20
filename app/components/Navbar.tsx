@@ -22,7 +22,7 @@ export default async function Navbar() {
               />
             </Link>
           <div>
-            <h1 className="md:text-lg font-semibold text-gray-900">
+            <h1 className="text-[0px] md:text-lg font-semibold text-gray-900">
               Alumni
             </h1>
             <p className="text-sm text-gray-600">
