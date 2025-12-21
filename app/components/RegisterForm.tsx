@@ -247,7 +247,7 @@ export default function RegisterForm() {
                 <Image src="/CollegeLogo.png" alt="Logo" width={48} height={48} className="rounded-md" />
               </Link>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">Alumni Association</h1>
+                <h1 className="text-[0px] md:text-lg font-semibold text-gray-900">Alumni</h1>
                 <p className="text-sm text-gray-600">Government Engineering College Bilaspur</p>
               </div>
             </div>
