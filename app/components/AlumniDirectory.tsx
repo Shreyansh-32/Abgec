@@ -231,8 +231,6 @@ export default function AlumniDirectory() {
 
                       <div>
                         <span className="font-medium text-gray-900">Email:</span> {alumni.email}
-                        <br />
-                        <span className="font-medium text-gray-900">Phone:</span> {alumni.mobile}
                       </div>
 
                       <div>
