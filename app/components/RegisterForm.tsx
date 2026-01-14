@@ -219,7 +219,7 @@ export default function RegisterForm() {
       if (res.status === 200) {
         toast.dismiss(loading);
         toast.success("Registration completed!");
-        router.push("/");
+        router.push("/login");
       }
       form.reset();
       setProofUrl(null);
