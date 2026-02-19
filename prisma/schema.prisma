@@ -24,6 +24,9 @@ model User{
   profilePicture    String?
   proofPicture      String?
   otp   Otp[]
+  mentor  Mentor?
+  achievements  Achievement[]
+  opportunities   Opportunity[]
 }
 
 model Otp{
@@ -32,4 +35,43 @@ model Otp{
   otp     String
   user    User    @relation(fields: [userId] , references: [id])
   expires   DateTime
+}
+
+model Mentor{
+  id  Int   @id   @default(autoincrement())
+  userId    Int   @unique
+  isPaid    Boolean
+  domain    String
+  user    User    @relation(fields: [userId], references: [id])
+  @@index([userId])
+}
+
+model Achievement{
+  id  Int   @id   @default(autoincrement())
+  userId    Int
+  Achievement   String
+  user    User    @relation(fields: [userId], references: [id])
+  @@index([userId])
+}
+
+enum JobType{
+  FullTime
+  PartTime
+  Internship
+  Temporary
+}
+
+model Opportunity{
+  id  Int   @id   @default(autoincrement())
+  userId    Int
+  JobTitle   String
+  Location    String?
+  RemotePosition  Boolean
+  JobType   JobType
+  Description   String
+  ApplicationUrl  String?
+  CompanyName   String
+  Website     String?
+  user    User    @relation(fields: [userId], references: [id])
+  @@index([userId])
 }

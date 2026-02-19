@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { UploadButton } from "@/utils/uploadthing";
 import Footer from "@/app/components/Footer";
 import { signOut } from "next-auth/react";
+import ProfileActions from "./components/ProfileActions";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -149,8 +150,8 @@ export default function ProfilePage() {
     </header>
 
       {/* Main Content */}
-      <main className="flex-grow w-full max-w-4xl mx-auto p-4 sm:p-8">
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
+      <main className="flex-grow w-full max-w-5xl mx-auto p-4 sm:p-8">
+        <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
           {/* Top Banner / Header Area */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-6 sm:p-10 text-white flex justify-between items-center">
             <div>
@@ -163,7 +164,7 @@ export default function ProfilePage() {
             <EditProfileDialog user={user} onUpdate={handleProfileUpdate} />
           </div>
 
-          <div className="p-6 sm:p-10 space-y-8">
+          <div className="p-6 sm:p-10 space-y-10">
             {/* Email Verification Warning */}
             {!user.isEmailVerified && (
               <div className="w-full bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-md shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
@@ -236,6 +237,21 @@ export default function ProfilePage() {
                     </Link>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-8">
+              <div className="flex flex-col gap-2">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Community Actions
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Contribute to the alumni network with mentorship,
+                  opportunities, or achievements.
+                </p>
+              </div>
+              <div className="mt-6">
+                <ProfileActions />
               </div>
             </div>
           </div>
