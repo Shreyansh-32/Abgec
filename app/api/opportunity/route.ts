@@ -34,6 +34,7 @@ export async function POST(req: Request) {
         ApplicationUrl: parsed.data.applicationUrl ?? null,
         CompanyName: parsed.data.companyName,
         Website: parsed.data.website ?? null,
+        attachmentUrl: parsed.data.attachmentUrl ?? null,
       },
     });
 

@@ -5,6 +5,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { UploadButton } from "@/utils/uploadthing";
 
 import {
   achievementFormSchema,
@@ -206,19 +207,26 @@ function MentorDialog() {
 
 function AchievementDialog() {
   const [open, setOpen] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
   const form = useForm<AchievementFormValues, unknown, AchievementFormValues>({
     resolver: zodResolver(achievementFormSchema),
     defaultValues: {
       achievement: "",
+      attachmentUrl: "",
     },
   });
 
   const onSubmit = async (values: AchievementFormValues) => {
     try {
-      await axios.post("/api/achievement", values);
+      const submitData = {
+        ...values,
+        attachmentUrl: uploadedFileUrl || values.attachmentUrl,
+      };
+      await axios.post("/api/achievement", submitData);
       toast.success("Achievement shared.");
       setOpen(false);
-      form.reset({ achievement: "" });
+      setUploadedFileUrl("");
+      form.reset({ achievement: "", attachmentUrl: "" });
     } catch {
       toast.error("Could not share achievement.");
     }
@@ -264,6 +272,29 @@ function AchievementDialog() {
               )}
             />
 
+            <div className="space-y-2">
+              <FormLabel>Attachment (Image or PDF)</FormLabel>
+              <div className="rounded-lg border border-dashed border-gray-300 p-4">
+                <UploadButton
+                  endpoint="documentUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res && res[0]) {
+                      setUploadedFileUrl(res[0].url);
+                      toast.success("File uploaded successfully");
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    toast.error(`Upload failed: ${error.message}`);
+                  }}
+                />
+              </div>
+              {uploadedFileUrl && (
+                <div className="text-sm text-green-600">
+                  ✓ File uploaded: {uploadedFileUrl.split("/").pop()}
+                </div>
+              )}
+            </div>
+
             <DialogFooter>
               <Button
                 type="button"
@@ -289,6 +320,7 @@ function AchievementDialog() {
 
 function OpportunityDialog() {
   const [open, setOpen] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
   const form = useForm<
     OpportunityFormInput,
     unknown,
@@ -304,14 +336,20 @@ function OpportunityDialog() {
       applicationUrl: "",
       companyName: "",
       website: "",
+      attachmentUrl: "",
     },
   });
 
   const onSubmit = async (values: OpportunityFormValues) => {
     try {
-      await axios.post("/api/opportunity", values);
+      const submitData = {
+        ...values,
+        attachmentUrl: uploadedFileUrl || values.attachmentUrl,
+      };
+      await axios.post("/api/opportunity", submitData);
       toast.success("Opportunity shared.");
       setOpen(false);
+      setUploadedFileUrl("");
       form.reset({
         jobTitle: "",
         location: "",
@@ -321,6 +359,7 @@ function OpportunityDialog() {
         applicationUrl: "",
         companyName: "",
         website: "",
+        attachmentUrl: "",
       });
     } catch {
       toast.error("Could not share opportunity.");
@@ -501,6 +540,29 @@ function OpportunityDialog() {
                 </FormItem>
               )}
             />
+
+            <div className="sm:col-span-2 space-y-2">
+              <FormLabel>Attachment (Image or PDF)</FormLabel>
+              <div className="rounded-lg border border-dashed border-gray-300 p-4">
+                <UploadButton
+                  endpoint="documentUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res && res[0]) {
+                      setUploadedFileUrl(res[0].url);
+                      toast.success("File uploaded successfully");
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    toast.error(`Upload failed: ${error.message}`);
+                  }}
+                />
+              </div>
+              {uploadedFileUrl && (
+                <div className="text-sm text-green-600">
+                  ✓ File uploaded: {uploadedFileUrl.split("/").pop()}
+                </div>
+              )}
+            </div>
 
             <div className="sm:col-span-2">
               <DialogFooter>

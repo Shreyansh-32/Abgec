@@ -52,6 +52,7 @@ model Achievement{
   id  Int   @id   @default(autoincrement())
   userId    Int
   Achievement   String
+  attachmentUrl   String?
   user    User    @relation(fields: [userId], references: [id])
   @@index([userId])
 }
@@ -74,6 +75,7 @@ model Opportunity{
   ApplicationUrl  String?
   CompanyName   String
   Website     String?
+  attachmentUrl   String?
   user    User    @relation(fields: [userId], references: [id])
   @@index([userId])
 }

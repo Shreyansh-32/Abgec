@@ -27,6 +27,7 @@ export async function POST(req: Request) {
       data: {
         userId: session.user.id,
         Achievement: parsed.data.achievement,
+        attachmentUrl: parsed.data.attachmentUrl ?? null,
       },
     });
 

@@ -111,7 +111,7 @@ const ProofUpload = ({ onUploaded, loadingUpload, setLoadingUpload }: ProofUploa
 
   return (
     <div className="mt-4">
-      <p className="text-sm text-gray-700 mb-2">Upload Marksheet / TC / Degree (max 2MB)</p>
+      <p className="text-sm text-gray-700 mb-2">Upload Marksheet / TC / Degree / any other relevant document which proves you as an Alumni (max 2MB)</p>
 
       {!filePreviewUrl ? (
         <UploadButton
