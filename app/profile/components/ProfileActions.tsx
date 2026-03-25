@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Image from "next/image";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { UploadButton } from "@/utils/uploadthing";
+import { X, File } from "lucide-react";
 
 import {
   achievementFormSchema,
@@ -207,7 +209,11 @@ function MentorDialog() {
 
 function AchievementDialog() {
   const [open, setOpen] = useState(false);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
+  const [uploadedFile, setUploadedFile] = useState<{
+    url: string;
+    name: string;
+    isImage: boolean;
+  } | null>(null);
   const form = useForm<AchievementFormValues, unknown, AchievementFormValues>({
     resolver: zodResolver(achievementFormSchema),
     defaultValues: {
@@ -220,12 +226,12 @@ function AchievementDialog() {
     try {
       const submitData = {
         ...values,
-        attachmentUrl: uploadedFileUrl || values.attachmentUrl,
+        attachmentUrl: uploadedFile?.url || values.attachmentUrl,
       };
       await axios.post("/api/achievement", submitData);
       toast.success("Achievement shared.");
       setOpen(false);
-      setUploadedFileUrl("");
+      setUploadedFile(null);
       form.reset({ achievement: "", attachmentUrl: "" });
     } catch {
       toast.error("Could not share achievement.");
@@ -274,23 +280,77 @@ function AchievementDialog() {
 
             <div className="space-y-2">
               <FormLabel>Attachment (Image or PDF)</FormLabel>
-              <div className="rounded-lg border border-dashed border-gray-300 p-4">
-                <UploadButton
-                  endpoint="documentUploader"
-                  onClientUploadComplete={(res) => {
-                    if (res && res[0]) {
-                      setUploadedFileUrl(res[0].url);
-                      toast.success("File uploaded successfully");
-                    }
-                  }}
-                  onUploadError={(error: Error) => {
-                    toast.error(`Upload failed: ${error.message}`);
-                  }}
-                />
-              </div>
-              {uploadedFileUrl && (
-                <div className="text-sm text-green-600">
-                  ✓ File uploaded: {uploadedFileUrl.split("/").pop()}
+              {!uploadedFile ? (
+                <div className="rounded-lg border border-dashed border-gray-300 p-4">
+                  <UploadButton
+                    endpoint="documentUploader"
+                    onClientUploadComplete={(res) => {
+                      if (res && res[0]) {
+                        const file = res[0];
+                        const isImage = file.type?.startsWith("image/") || false;
+                        const fileName =
+                          file.name ||
+                          file.url.split("/").pop()?.split("?")[0] ||
+                          "Attachment";
+                        
+                        console.log("Uploaded file:", file);
+                        setUploadedFile({
+                          url: file.url,
+                          name: fileName,
+                          isImage,
+                        });
+                        toast.success("File uploaded successfully");
+                      }
+                    }}
+                    onUploadError={(error: Error) => {
+                      toast.error(`Upload failed: ${error.message}`);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-gray-300 bg-gray-50 p-4">
+                  {uploadedFile.isImage ? (
+                    <div className="space-y-2">
+                      <div className="relative h-48 w-full overflow-hidden rounded-lg bg-gray-200">
+                        <Image
+                          src={uploadedFile.url}
+                          alt="Preview"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 400px"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-600">{uploadedFile.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFile(null)}
+                        className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+                      >
+                        <X size={16} />
+                        Remove file
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <File className="text-red-500" size={32} />
+                        <div>
+                          <p className="text-sm font-semibold">
+                            {uploadedFile.name}
+                          </p>
+                          <p className="text-xs text-gray-600">PDF Document</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFile(null)}
+                        className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+                      >
+                        <X size={16} />
+                        Remove file
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -320,7 +380,11 @@ function AchievementDialog() {
 
 function OpportunityDialog() {
   const [open, setOpen] = useState(false);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
+  const [uploadedFile, setUploadedFile] = useState<{
+    url: string;
+    name: string;
+    isImage: boolean;
+  } | null>(null);
   const form = useForm<
     OpportunityFormInput,
     unknown,
@@ -344,12 +408,12 @@ function OpportunityDialog() {
     try {
       const submitData = {
         ...values,
-        attachmentUrl: uploadedFileUrl || values.attachmentUrl,
+        attachmentUrl: uploadedFile?.url || values.attachmentUrl,
       };
       await axios.post("/api/opportunity", submitData);
       toast.success("Opportunity shared.");
       setOpen(false);
-      setUploadedFileUrl("");
+      setUploadedFile(null);
       form.reset({
         jobTitle: "",
         location: "",
@@ -543,23 +607,77 @@ function OpportunityDialog() {
 
             <div className="sm:col-span-2 space-y-2">
               <FormLabel>Attachment (Image or PDF)</FormLabel>
-              <div className="rounded-lg border border-dashed border-gray-300 p-4">
-                <UploadButton
-                  endpoint="documentUploader"
-                  onClientUploadComplete={(res) => {
-                    if (res && res[0]) {
-                      setUploadedFileUrl(res[0].url);
-                      toast.success("File uploaded successfully");
-                    }
-                  }}
-                  onUploadError={(error: Error) => {
-                    toast.error(`Upload failed: ${error.message}`);
-                  }}
-                />
-              </div>
-              {uploadedFileUrl && (
-                <div className="text-sm text-green-600">
-                  ✓ File uploaded: {uploadedFileUrl.split("/").pop()}
+              {!uploadedFile ? (
+                <div className="rounded-lg border border-dashed border-gray-300 p-4">
+                  <UploadButton
+                    endpoint="documentUploader"
+                    onClientUploadComplete={(res) => {
+                      if (res && res[0]) {
+                        const file = res[0];
+                        const isImage = file.type?.startsWith("image/") || false;
+                        const fileName =
+                          file.name ||
+                          file.url.split("/").pop()?.split("?")[0] ||
+                          "Attachment";
+                        
+                        console.log("Uploaded file:", file);
+                        setUploadedFile({
+                          url: file.url,
+                          name: fileName,
+                          isImage,
+                        });
+                        toast.success("File uploaded successfully");
+                      }
+                    }}
+                    onUploadError={(error: Error) => {
+                      toast.error(`Upload failed: ${error.message}`);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-gray-300 bg-gray-50 p-4">
+                  {uploadedFile.isImage ? (
+                    <div className="space-y-2">
+                      <div className="relative h-48 w-full overflow-hidden rounded-lg bg-gray-200">
+                        <Image
+                          src={uploadedFile.url}
+                          alt="Preview"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 400px"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-600">{uploadedFile.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFile(null)}
+                        className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+                      >
+                        <X size={16} />
+                        Remove file
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <File className="text-red-500" size={32} />
+                        <div>
+                          <p className="text-sm font-semibold">
+                            {uploadedFile.name}
+                          </p>
+                          <p className="text-xs text-gray-600">PDF Document</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFile(null)}
+                        className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+                      >
+                        <X size={16} />
+                        Remove file
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
