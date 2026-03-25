@@ -7,9 +7,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const otpData = await prisma.otp.findFirst({
-        where:{
-            userId
-        }
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
     if(!otpData){
         return NextResponse.json({"message" : "OTP for this user doesn't exist"} , {status : 401});

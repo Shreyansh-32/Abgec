@@ -11,6 +11,8 @@ type ReqBody = {
 
 const BREVO_API = "https://api.brevo.com/v3/smtp/email";
 const OTP_TTL_MINUTES = 10;
+const OTP_RATE_WINDOW_MINUTES = 60;
+const OTP_RATE_MAX = 3;
 
 export async function POST(req: NextRequest) {
   const body: ReqBody = await req.json().catch(() => ({}));
@@ -40,20 +42,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "User not found. Please register first." }, { status: 404 });
     }
 
+    const now = new Date();
+
+    const rateWindowStart = new Date(
+      now.getTime() - OTP_RATE_WINDOW_MINUTES * 60 * 1000
+    );
+    const recentOtpCount = await prisma.otp.count({
+      where: {
+        userId: user.id,
+        createdAt: {
+          gte: rateWindowStart,
+        },
+      },
+    });
+
+    if (recentOtpCount >= OTP_RATE_MAX) {
+      return NextResponse.json(
+        {
+          message: `Too many OTP requests. Try again later.`,
+        },
+        { status: 429 }
+      );
+    }
+
     // generate 6-digit OTP
     const otp = randomInt(100000, 1000000).toString();
 
     // hash OTP
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // remove existing OTPs for this user (so only the newest is valid)
-    await prisma.otp.deleteMany({ where: { userId: user.id } });
+    // delete expired OTPs to keep the table tidy
+    await prisma.otp.deleteMany({
+      where: {
+        userId: user.id,
+        expires: {
+          lt: now,
+        },
+      },
+    });
 
     // store new OTP
     await prisma.otp.create({
       data: {
         otp: hashedOtp,
-        expires: new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000),
+        expires: new Date(now.getTime() + OTP_TTL_MINUTES * 60 * 1000),
         userId: user.id,
       },
     });

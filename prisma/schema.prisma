@@ -35,6 +35,8 @@ model Otp{
   otp     String
   user    User    @relation(fields: [userId] , references: [id])
   expires   DateTime
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
 }
 
 model Mentor{
