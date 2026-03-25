@@ -17,7 +17,7 @@ export const mentorFormSchema = z.object({
 
 export const achievementFormSchema = z.object({
   achievement: z.string().trim().min(3, "Achievement is required"),
-  attachmentUrl: optionalString,
+  attachmentUrl: z.string().optional(),
 });
 
 export const opportunityFormSchema = z.object({
@@ -29,7 +29,7 @@ export const opportunityFormSchema = z.object({
   applicationUrl: optionalUrl,
   companyName: z.string().trim().min(2, "Company name is required"),
   website: optionalUrl,
-  attachmentUrl: optionalString,
+  attachmentUrl: z.string().optional(),
 });
 
 export type MentorFormValues = z.infer<typeof mentorFormSchema>;
