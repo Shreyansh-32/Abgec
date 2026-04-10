@@ -74,33 +74,37 @@ function ActionCard({
   );
 }
 
-export default function ProfileActions() {
+export default function ProfileActions({ 
+  initialDialog 
+}: { 
+  initialDialog: string | null 
+}) {
   return (
     <section className="grid gap-4 md:grid-cols-3">
       <ActionCard
         title="Become a Mentor"
         description="Share your expertise with juniors and alumni." 
       >
-        <MentorDialog />
+        <MentorDialog initialOpen={initialDialog === "mentor"} />
       </ActionCard>
       <ActionCard
         title="Share an Opportunity"
         description="Post openings from your team or network." 
       >
-        <OpportunityDialog />
+        <OpportunityDialog initialOpen={initialDialog === "opportunity"} />
       </ActionCard>
       <ActionCard
         title="Share an Achievement"
         description="Celebrate milestones with the community." 
       >
-        <AchievementDialog />
+        <AchievementDialog initialOpen={initialDialog === "achievement"} />
       </ActionCard>
     </section>
   );
 }
 
-function MentorDialog() {
-  const [open, setOpen] = useState(false);
+function MentorDialog({ initialOpen = false }: { initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
   const form = useForm<MentorFormValues, unknown, MentorFormValues>({
     resolver: zodResolver(mentorFormSchema),
     defaultValues: {
@@ -207,8 +211,8 @@ function MentorDialog() {
   );
 }
 
-function AchievementDialog() {
-  const [open, setOpen] = useState(false);
+function AchievementDialog({ initialOpen = false }: { initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
   const [uploadedFile, setUploadedFile] = useState<{
     url: string;
     name: string;
@@ -378,8 +382,8 @@ function AchievementDialog() {
   );
 }
 
-function OpportunityDialog() {
-  const [open, setOpen] = useState(false);
+function OpportunityDialog({ initialOpen = false }: { initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
   const [uploadedFile, setUploadedFile] = useState<{
     url: string;
     name: string;

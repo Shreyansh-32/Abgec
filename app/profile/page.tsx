@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import axios from "axios";
@@ -49,6 +50,8 @@ export default function ProfilePage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const dialogParam = searchParams.get("dialog");
 
   // Fetch Data
   useEffect(() => {
@@ -251,7 +254,7 @@ export default function ProfilePage() {
                 </p>
               </div>
               <div className="mt-6">
-                <ProfileActions />
+                <ProfileActions initialDialog={dialogParam} />
               </div>
             </div>
           </div>
